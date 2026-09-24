@@ -11,17 +11,22 @@ stages:
 
 - stage: CI
   displayName: 'Continuous Integration'
-
   jobs:
   - job: BuildAndTest
     displayName: 'Build & Test'
-
     steps:
+    - checkout: self
+
     - script: |
         echo "Checking Node.js and npm versions"
         node --version
         npm --version
       displayName: 'Check Node.js and npm'
+
+    - task: npmAuthenticate@0
+      inputs:
+        workingFile: '.npmrc'
+      displayName: 'Authenticate npm for Install'
 
     - script: |
         npm ci
@@ -31,19 +36,30 @@ stages:
         npm test -- --runInBand --coverage
       displayName: 'Run Unit Tests'
 
+    - publish: $(System.DefaultWorkingDirectory)/coverage
+      artifact: coverage-report
+      displayName: 'Publish Coverage Results'
+
+
 - stage: CT
   displayName: 'Continuous Testing'
   dependsOn: CI
   condition: succeeded()
-
   jobs:
   - job: SonarQube
     displayName: 'SonarQube Analysis'
-
     steps:
     - checkout: self
 
+    # CI se publish hua coverage folder download karega
+    - download: current
+      artifact: coverage-report
+      displayName: 'Download Coverage Results'
+
     - script: |
+        mkdir -p coverage
+        cp -r $(Pipeline.Workspace)/coverage-report/* coverage/ 2>/dev/null || true
+
         npx --yes sonarqube-scanner \
           -Dsonar.host.url="http://3.85.202.235:9000" \
           -Dsonar.login="$SONAR_TOKEN" \
@@ -57,3 +73,23 @@ stages:
       env:
         SONAR_TOKEN: $(SONAR_TOKEN)
         JAVA_HOME: $(JAVA_HOME)
+
+
+- stage: CD
+  displayName: 'Continuous Deployment'
+  dependsOn: CT
+  condition: succeeded()
+  jobs:
+  - job: PublishPackage
+    displayName: 'Publish to Azure Artifacts'
+    steps:
+    - checkout: self
+
+    - task: npmAuthenticate@0
+      inputs:
+        workingFile: '.npmrc'
+      displayName: 'Authenticate npm for Publish'
+
+    - script: |
+        npm publish
+      displayName: 'Publish npm package to Feed'
