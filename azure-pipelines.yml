@@ -1,27 +1,56 @@
 trigger:
-- main
+  - main
+
+variables:
+  system.debug: true
 
 pool:
   name: aws-ec2-pool
 
-steps:
+stages:
 
-- script: |
-    node --version
-    npm --version
-  displayName: 'Check Node.js and npm'
+- stage: CI
+  displayName: 'Continuous Integration'
 
-- script: |
-    npm ci
-  displayName: 'Install dependencies'
+  jobs:
+  - job: BuildAndTest
+    displayName: 'Build & Test'
 
-- script: |
-    npm test
-  displayName: 'Run unit tests'
+    steps:
+    - script: |
+        echo "Checking Node.js and npm versions"
+        node --version
+        npm --version
+      displayName: 'Check Node.js and npm'
 
-- task: Npm@1
-  displayName: 'Publish package to Azure Artifacts'
-  inputs:
-    command: publish
-    publishRegistry: useFeed
-    publishFeed: 'new_npm/npm-feed'
+    - script: |
+        npm ci
+      displayName: 'Install Dependencies'
+
+    - script: |
+        npm test -- --runInBand
+      displayName: 'Run Unit Tests'
+
+- stage: CT
+  displayName: 'Continuous Testing'
+  dependsOn: CI
+  condition: succeeded()
+
+  jobs:
+  - job: SonarQube
+    displayName: 'SonarQube Analysis'
+
+    steps:
+    - checkout: self
+
+    - script: |
+        npx --yes sonarqube-scanner \
+          -Dsonar.host.url="http://<YOUR_SONARQUBE_IP>:9000" \
+          -Dsonar.token="$(SONAR_TOKEN)" \
+          -Dsonar.projectKey="nodejs-cicd-project" \
+          -Dsonar.projectName="nodejs-cicd-project" \
+          -Dsonar.sources="." \
+          -Dsonar.exclusions="**/node_modules/**,**/*.spec.js,**/*.test.js"
+      displayName: 'Execute SonarQube Scan'
+      env:
+        JAVA_HOME: $(JAVA_HOME)
