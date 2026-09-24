@@ -45,7 +45,7 @@ stages:
 
     - script: |
         npx --yes sonarqube-scanner \
-          -Dsonar.host.url="http://<YOUR_SONARQUBE_IP>:9000" \
+          -Dsonar.host.url="http://3.85.202.235:9000" \
           -Dsonar.token="$(SONAR_TOKEN)" \
           -Dsonar.projectKey="nodejs-cicd-project" \
           -Dsonar.projectName="nodejs-cicd-project" \
