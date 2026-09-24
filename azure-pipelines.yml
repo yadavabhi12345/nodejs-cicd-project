@@ -46,7 +46,8 @@ stages:
     - script: |
         npx --yes sonarqube-scanner \
           -Dsonar.host.url="http://3.85.202.235:9000" \
-          -Dsonar.login="$SONAR_TOKEN_ENV" \
+          -Dsonar.login="$SONAR_TOKEN" \
+          -Dsonar.password="" \
           -Dsonar.projectKey="nodejs-cicd-project" \
           -Dsonar.projectName="nodejs-cicd-project" \
           -Dsonar.sources="." \
@@ -54,5 +55,5 @@ stages:
           -Dsonar.javascript.lcov.reportPaths="coverage/lcov.info"
       displayName: 'Execute SonarQube Scan'
       env:
-        SONAR_TOKEN_ENV: $(SONAR_TOKEN)
+        SONAR_TOKEN: $(SONAR_TOKEN)
         JAVA_HOME: $(JAVA_HOME)
