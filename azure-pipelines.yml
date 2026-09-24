@@ -60,7 +60,7 @@ stages:
         mkdir -p coverage
         cp -r $(Pipeline.Workspace)/coverage-report/* coverage/ 2>/dev/null || true
 
-        npx --yes sonarqube-scanner \
+        npx --registry=https://registry.npmjs.org/ --yes sonarqube-scanner \
           -Dsonar.host.url="http://3.85.202.235:9000" \
           -Dsonar.login="$SONAR_TOKEN" \
           -Dsonar.password="" \
